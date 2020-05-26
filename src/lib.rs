@@ -26,7 +26,7 @@
 //! ```
 //! use easy_parallel::Parallel;
 //!
-//! let mut v = vec![10, 20, 30];
+//! let v = vec![10, 20, 30];
 //!
 //! Parallel::new()
 //!     .each(0..v.len(), |i| println!("{}", v[i]))
