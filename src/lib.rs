@@ -1,4 +1,4 @@
-//! Easy parallel closures.
+//! Run closures in parallel.
 //!
 //! This is a simple primitive for spawning threads in bulk and waiting for them to complete.
 //! Threads are allowed to borrow local variables from the main thread.

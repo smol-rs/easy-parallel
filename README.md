@@ -9,7 +9,7 @@ https://crates.io/crates/easy-parallel)
 [![Documentation](https://docs.rs/easy-parallel/badge.svg)](
 https://docs.rs/easy-parallel)
 
-Easy parallel closures.
+Run closures in parallel.
 
 This is a simple primitive for spawning threads in bulk and waiting for them to complete.
 Threads are allowed to borrow local variables from the main thread.
@@ -32,16 +32,19 @@ Parallel::new()
 assert_eq!(*m.get_mut().unwrap(), 2);
 ```
 
-Print each number in a vector on a different thread:
+Square each number of a vector on a different thread:
 
 ```rust
 use easy_parallel::Parallel;
 
 let v = vec![10, 20, 30];
 
-Parallel::new()
-    .each(0..v.len(), |i| println!("{}", v[i]))
+let mut squares = Parallel::new()
+    .each(0..v.len(), |i| v[i] * v[i])
     .run();
+
+squares.sort();
+assert_eq!(squares, [100, 400, 900]);
 ```
 
 ## License
