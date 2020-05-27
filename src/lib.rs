@@ -121,9 +121,10 @@ impl<'a, T> Parallel<'a, T> {
         self
     }
 
-    /// Spawns a thread for each closure and collects their results.
+    /// Runs each closure on a separate thread and collects their results.
     ///
-    /// Results are collected in the order in which threads completed.
+    /// Results are collected in the order in which closures complete. One of the closures always
+    /// run on the main thread because there is no point in spawning an extra thread for it.
     ///
     /// If a closure panics, panicking will resume in the main thread after all threads are joined.
     ///
@@ -148,7 +149,14 @@ impl<'a, T> Parallel<'a, T> {
     where
         T: Send + 'a,
     {
-        // Set up a guard that aborts on a panic.
+        // Get the first closure.
+        let mut closures = self.closures.into_iter();
+        let f = match closures.next() {
+            None => return Vec::new(),
+            Some(f) => f,
+        };
+
+        // Set up a guard that aborts on panic.
         let guard = NoPanic;
 
         // Join handles for spawned threads.
@@ -158,7 +166,7 @@ impl<'a, T> Parallel<'a, T> {
         let (sender, receiver) = mpsc::channel();
 
         // Spawn a thread for each closure.
-        for f in self.closures {
+        for f in closures {
             // Wrap into a closure that sends the result back.
             let sender = sender.clone();
             let f = move || sender.send(f()).unwrap();
@@ -172,6 +180,12 @@ impl<'a, T> Parallel<'a, T> {
         }
 
         let mut last_err = None;
+
+        // Run the first closure on the main thread.
+        match panic::catch_unwind(panic::AssertUnwindSafe(move || sender.send(f()).unwrap())) {
+            Ok(()) => {}
+            Err(err) => last_err = Some(err),
+        }
 
         // Join threads and save the last panic if there was one.
         for h in handles {
@@ -188,8 +202,7 @@ impl<'a, T> Parallel<'a, T> {
             panic::resume_unwind(err);
         }
 
-        // Collect the results into a `Vec`.
-        drop(sender);
+        // Collect the results.
         receiver.into_iter().collect()
     }
 }
