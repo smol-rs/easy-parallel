@@ -14,7 +14,7 @@ Run closures in parallel.
 This is a simple primitive for spawning threads in bulk and waiting for them to complete.
 Threads are allowed to borrow local variables from the main thread.
 
-## Examples
+# Examples
 
 Run two threads that increment a number:
 
@@ -45,6 +45,27 @@ let mut squares = Parallel::new()
 
 squares.sort();
 assert_eq!(squares, [100, 400, 900]);
+```
+
+Compute the sum of numbers in an array:
+
+```rust
+use easy_parallel::Parallel;
+
+fn par_sum(v: &[i32]) -> i32 {
+    const THRESHOLD: usize = 2;
+
+    if v.len() <= THRESHOLD {
+        v.iter().copied().sum()
+    } else {
+        let half = (v.len() + 1) / 2;
+        let sums = Parallel::new().each(v.chunks(half), par_sum).run();
+        sums.into_iter().sum()
+    }
+}
+
+let v = [1, 25, -4, 10, 8];
+assert_eq!(par_sum(&v), 40);
 ```
 
 ## License
