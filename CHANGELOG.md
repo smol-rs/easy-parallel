@@ -1,3 +1,7 @@
+# Version 2.2.0
+
+- Remove `PhantomData` making `'a` invariant.
+
 # Version 2.1.0
 
 - Run one of the closures on the main thread.
