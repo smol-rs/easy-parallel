@@ -1,3 +1,7 @@
+# Version 2.1.0
+
+- Run one of the closures on the main thread.
+
 # Version 2.0.0
 
 - `Parallel::run()` now collects results.
