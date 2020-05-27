@@ -60,7 +60,6 @@
 #![warn(missing_docs, missing_debug_implementations, rust_2018_idioms)]
 
 use std::fmt;
-use std::marker::PhantomData;
 use std::mem;
 use std::panic;
 use std::process;
@@ -73,9 +72,6 @@ use std::thread;
 pub struct Parallel<'a, T> {
     /// Closures to run.
     closures: Vec<Box<dyn FnOnce() -> T + Send + 'a>>,
-
-    /// Makes the lifetime invariant.
-    _marker: PhantomData<&'a mut &'a ()>,
 }
 
 impl<'a, T> Parallel<'a, T> {
@@ -91,7 +87,6 @@ impl<'a, T> Parallel<'a, T> {
     pub fn new() -> Parallel<'a, T> {
         Parallel {
             closures: Vec::new(),
-            _marker: PhantomData,
         }
     }
 
