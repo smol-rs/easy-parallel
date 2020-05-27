@@ -124,7 +124,7 @@ impl<'a, T> Parallel<'a, T> {
     /// Runs each closure on a separate thread and collects their results.
     ///
     /// Results are collected in the order in which closures complete. One of the closures always
-    /// run on the main thread because there is no point in spawning an extra thread for it.
+    /// runs on the main thread because there is no point in spawning an extra thread for it.
     ///
     /// If a closure panics, panicking will resume in the main thread after all threads are joined.
     ///
