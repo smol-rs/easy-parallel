@@ -7,11 +7,8 @@ fn par_sum(v: &[i32]) -> i32 {
         v.iter().copied().sum()
     } else {
         let half = (v.len() + 1) / 2;
-        Parallel::new()
-            .each(v.chunks(half), par_sum)
-            .run()
-            .into_iter()
-            .sum()
+        let sums = Parallel::new().each(v.chunks(half), par_sum).run();
+        sums.into_iter().sum()
     }
 }
 
