@@ -28,11 +28,10 @@
 //!
 //! let v = vec![10, 20, 30];
 //!
-//! let mut squares = Parallel::new()
+//! let squares = Parallel::new()
 //!     .each(0..v.len(), |i| v[i] * v[i])
 //!     .run();
 //!
-//! squares.sort();
 //! assert_eq!(squares, [100, 400, 900]);
 //! ```
 //!
@@ -139,7 +138,7 @@ impl<'a, T> Parallel<'a, T> {
 
     /// Runs each closure on a separate thread and collects their results.
     ///
-    /// Results are collected in the order in which closures complete. One of the closures always
+    /// Results are collected in the order in which closures were added. One of the closures always
     /// runs on the main thread because there is no point in spawning an extra thread for it.
     ///
     /// If a closure panics, panicking will resume in the main thread after all threads are joined.
@@ -152,14 +151,11 @@ impl<'a, T> Parallel<'a, T> {
     /// use std::time::Duration;
     ///
     /// let res = Parallel::new()
-    ///     .each(0..5, |i| {
-    ///         thread::sleep(Duration::from_secs(5 - i));
-    ///         i
-    ///     })
+    ///     .each(1..=3, |i| 10 * i)
+    ///     .add(|| 100)
     ///     .run();
     ///
-    /// // Threads finish in reverse order because of how they sleep.
-    /// assert_eq!(res, [4, 3, 2, 1, 0]);
+    /// assert_eq!(res, [10, 20, 30, 100]);
     /// ```
     pub fn run(self) -> Vec<T>
     where
@@ -178,13 +174,13 @@ impl<'a, T> Parallel<'a, T> {
         // Join handles for spawned threads.
         let mut handles = Vec::new();
 
-        // Channel to collect results from spawned threads.
-        let (sender, receiver) = mpsc::channel();
+        // Channels to collect results from spawned threads.
+        let mut receivers = Vec::new();
 
-        // Spawn a thread for each closure.
+        // Spawn a thread for each closure after the first one.
         for f in closures {
             // Wrap into a closure that sends the result back.
-            let sender = sender.clone();
+            let (sender, receiver) = mpsc::channel();
             let f = move || sender.send(f()).unwrap();
 
             // Erase the `'a` lifetime.
@@ -193,13 +189,15 @@ impl<'a, T> Parallel<'a, T> {
 
             // Spawn a thread for the closure.
             handles.push(thread::spawn(f));
+            receivers.push(receiver);
         }
 
+        let mut results = Vec::new();
         let mut last_err = None;
 
         // Run the first closure on the main thread.
-        match panic::catch_unwind(panic::AssertUnwindSafe(move || sender.send(f()).unwrap())) {
-            Ok(()) => {}
+        match panic::catch_unwind(panic::AssertUnwindSafe(f)) {
+            Ok(r) => results.push(r),
             Err(err) => last_err = Some(err),
         }
 
@@ -218,8 +216,11 @@ impl<'a, T> Parallel<'a, T> {
             panic::resume_unwind(err);
         }
 
-        // Collect the results.
-        receiver.into_iter().collect()
+        // Collect the results from threads.
+        for receiver in receivers {
+            results.push(receiver.recv().unwrap());
+        }
+        results
     }
 }
 
