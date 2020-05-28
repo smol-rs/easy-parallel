@@ -1,3 +1,7 @@
+# Version 3.0.0
+
+- Collect results in the same order closures were added.
+
 # Version 2.2.0
 
 - Remove `PhantomData` making `'a` invariant.
