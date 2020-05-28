@@ -63,7 +63,6 @@ use std::fmt;
 use std::mem;
 use std::panic;
 use std::process;
-use std::sync::mpsc;
 use std::thread;
 
 /// A builder that runs closures in parallel.
@@ -139,8 +138,9 @@ impl<'a, T> Parallel<'a, T> {
 
     /// Runs each closure on a separate thread and collects their results.
     ///
-    /// Results are collected in the order in which closures complete. One of the closures always
-    /// runs on the main thread because there is no point in spawning an extra thread for it.
+    /// Results are collected in the order in which closures were initially submitted.
+    /// One of the closures always runs on the main thread
+    /// because there is no point in spawning an extra thread for it.
     ///
     /// If a closure panics, panicking will resume in the main thread after all threads are joined.
     ///
@@ -153,8 +153,8 @@ impl<'a, T> Parallel<'a, T> {
     ///
     /// let res = Parallel::new()
     ///     .each(0..5, |i| {
-    ///         thread::sleep(Duration::from_secs(5 - i));
-    ///         i
+    ///         thread::sleep(Duration::from_secs(i));
+    ///         4 - i
     ///     })
     ///     .run();
     ///
@@ -165,30 +165,39 @@ impl<'a, T> Parallel<'a, T> {
     where
         T: Send + 'a,
     {
+        // Vec to collect results from spawned threads.
+        let mut results = self.closures.iter().map(|_| None).collect::<Vec<_>>();
+
+        // Wrap closures to assign results into the Vec
+        let wrapped_closures = self.closures.into_iter().zip(&mut results).map(|(f, result)| {
+            Box::new(move || *result = Some(f())) as Box<dyn FnOnce() + Send + '_>
+        });
+
+        // This is a separate function so that `&mut results` can be borrow-checked.
+        Self::run_without_return_values(wrapped_closures);
+
+        // Collect the results.
+        results.into_iter().map(Option::unwrap).collect()
+    }
+
+    fn run_without_return_values<'b>(mut closures: impl Iterator<Item=Box<dyn FnOnce() + Send + 'b>>) {
         // Get the first closure.
-        let mut closures = self.closures.into_iter();
         let f = match closures.next() {
-            None => return Vec::new(),
+            None => return,
             Some(f) => f,
         };
 
-        // Set up a guard that aborts on panic.
+        // Set up a guard that aborts on panic,
+        // to make sure we don’t exit the `'b` lifetime without joining threads.
         let guard = NoPanic;
 
         // Join handles for spawned threads.
         let mut handles = Vec::new();
 
-        // Channel to collect results from spawned threads.
-        let (sender, receiver) = mpsc::channel();
-
         // Spawn a thread for each closure.
         for f in closures {
-            // Wrap into a closure that sends the result back.
-            let sender = sender.clone();
-            let f = move || sender.send(f()).unwrap();
-
-            // Erase the `'a` lifetime.
-            let f: Box<dyn FnOnce() + Send + 'a> = Box::new(f);
+            // Erase the `'b` lifetime.
+            let f: Box<dyn FnOnce() + Send + 'b> = f;
             let f: Box<dyn FnOnce() + Send + 'static> = unsafe { mem::transmute(f) };
 
             // Spawn a thread for the closure.
@@ -198,7 +207,7 @@ impl<'a, T> Parallel<'a, T> {
         let mut last_err = None;
 
         // Run the first closure on the main thread.
-        match panic::catch_unwind(panic::AssertUnwindSafe(move || sender.send(f()).unwrap())) {
+        match panic::catch_unwind(panic::AssertUnwindSafe(f)) {
             Ok(()) => {}
             Err(err) => last_err = Some(err),
         }
@@ -217,9 +226,6 @@ impl<'a, T> Parallel<'a, T> {
         if let Some(err) = last_err {
             panic::resume_unwind(err);
         }
-
-        // Collect the results.
-        receiver.into_iter().collect()
     }
 }
 
