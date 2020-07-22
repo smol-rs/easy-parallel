@@ -1,3 +1,7 @@
+# Version 3.1.0
+
+- Add `Parallel::finish()`.
+
 # Version 3.0.0
 
 - Collect results in the same order closures were added.
