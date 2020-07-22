@@ -26,3 +26,15 @@ fn squares() {
 
     assert_eq!(squares, [100, 400, 900]);
 }
+
+#[test]
+fn finish() {
+    let v = vec![10, 20, 30];
+
+    let (squares, len) = Parallel::new()
+        .each(0..v.len(), |i| v[i] * v[i])
+        .finish(|| v.len());
+
+    assert_eq!(squares, [100, 400, 900]);
+    assert_eq!(len, 3);
+}
