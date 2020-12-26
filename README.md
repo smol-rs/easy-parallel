@@ -1,9 +1,9 @@
 # easy-parallel
 
-[![Build](https://github.com/stjepang/easy-parallel/workflows/Build%20and%20test/badge.svg)](
-https://github.com/stjepang/easy-parallel/actions)
+[![Build](https://github.com/smol-rs/easy-parallel/workflows/Build%20and%20test/badge.svg)](
+https://github.com/smol-rs/easy-parallel/actions)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](
-https://github.com/stjepang/easy-parallel)
+https://github.com/smol-rs/easy-parallel)
 [![Cargo](https://img.shields.io/crates/v/easy-parallel.svg)](
 https://crates.io/crates/easy-parallel)
 [![Documentation](https://docs.rs/easy-parallel/badge.svg)](
