@@ -10,4 +10,3 @@ homepage = "https://github.com/smol-rs/easy-parallel"
 documentation = "https://docs.rs/easy-parallel"
 keywords = ["scope", "thread", "scoped", "spawn"]
 categories = ["concurrency"]
-readme = "README.md"
