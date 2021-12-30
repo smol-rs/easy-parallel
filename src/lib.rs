@@ -66,7 +66,6 @@ use std::sync::mpsc;
 use std::thread;
 
 /// A builder that runs closures in parallel.
-#[derive(Default)]
 #[must_use]
 pub struct Parallel<'a, T> {
     /// Closures to run.
@@ -260,6 +259,12 @@ impl<T> fmt::Debug for Parallel<'_, T> {
         f.debug_struct("Parallel")
             .field("len", &self.closures.len())
             .finish()
+    }
+}
+
+impl<T> Default for Parallel<'_, T> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
