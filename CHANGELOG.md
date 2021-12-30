@@ -1,3 +1,7 @@
+# Version 3.2.0
+
+- Remove `T: Default` bound from `Default` impl.
+
 # Version 3.1.0
 
 - Add `Parallel::finish()`.
