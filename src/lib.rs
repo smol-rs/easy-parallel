@@ -99,6 +99,7 @@ impl<'a, T> Parallel<'a, T> {
     ///     .add(|| println!("hello from a thread"))
     ///     .run();
     /// ```
+    #[allow(clippy::should_implement_trait)]
     pub fn add<F>(mut self, f: F) -> Parallel<'a, T>
     where
         F: FnOnce() -> T + Send + 'a,
