@@ -20,9 +20,7 @@ fn smoke() {
 fn squares() {
     let v = vec![10, 20, 30];
 
-    let squares = Parallel::new()
-        .each(0..v.len(), |i| v[i] * v[i])
-        .run();
+    let squares = Parallel::new().each(0..v.len(), |i| v[i] * v[i]).run();
 
     assert_eq!(squares, [100, 400, 900]);
 }
