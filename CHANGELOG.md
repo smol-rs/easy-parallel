@@ -1,3 +1,7 @@
+# Version 3.3.0
+
+- Add `Parallel::collect()` and `Parallel::finish_in()` to allow for generic containers. (#9)
+
 # Version 3.2.0
 
 - Remove `T: Default` bound from `Default` impl.
