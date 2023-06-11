@@ -57,12 +57,11 @@
 //! ```
 
 #![warn(missing_docs, missing_debug_implementations, rust_2018_idioms)]
+#![forbid(unsafe_code)]
 
 use std::fmt;
 use std::iter::{self, FromIterator};
-use std::mem;
 use std::panic;
-use std::process;
 use std::sync::mpsc;
 use std::thread;
 
@@ -256,58 +255,50 @@ impl<'a, T> Parallel<'a, T> {
         T: Send + 'a,
         C: FromIterator<T>,
     {
-        // Set up a guard that aborts on panic.
-        let guard = NoPanic;
+        // Set up a new thread scope.
+        thread::scope(|scope| {
+            // Join handles for spawned threads.
+            let mut handles = Vec::new();
 
-        // Join handles for spawned threads.
-        let mut handles = Vec::new();
+            // Channels to collect results from spawned threads.
+            let mut receivers = Vec::new();
 
-        // Channels to collect results from spawned threads.
-        let mut receivers = Vec::new();
+            for f in self.closures.into_iter() {
+                // Wrap into a closure that sends the result back.
+                let (sender, receiver) = mpsc::channel();
+                let f = move || sender.send(f()).unwrap();
 
-        // Spawn a thread for each closure after the first one.
-        for f in self.closures.into_iter() {
-            // Wrap into a closure that sends the result back.
-            let (sender, receiver) = mpsc::channel();
-            let f = move || sender.send(f()).unwrap();
-
-            // Erase the `'a` lifetime.
-            let f: Box<dyn FnOnce() + Send + 'a> = Box::new(f);
-            let f: Box<dyn FnOnce() + Send + 'static> = unsafe { mem::transmute(f) };
-
-            // Spawn a thread for the closure.
-            handles.push(thread::spawn(f));
-            receivers.push(receiver);
-        }
-
-        let mut last_err = None;
-
-        // Run the main closure on the main thread.
-        let res = panic::catch_unwind(panic::AssertUnwindSafe(f));
-
-        // Join threads and save the last panic if there was one.
-        for h in handles {
-            if let Err(err) = h.join() {
-                last_err = Some(err);
+                // Spawn it on the scope.
+                handles.push(scope.spawn(f));
+                receivers.push(receiver);
             }
-        }
 
-        // Drop the guard because we may resume a panic now.
-        drop(guard);
+            let mut last_err = None;
 
-        // If a thread has panicked, resume the last collected panic.
-        if let Some(err) = last_err {
-            panic::resume_unwind(err);
-        }
+            // Run the main closure on the main thread.
+            let res = panic::catch_unwind(panic::AssertUnwindSafe(f));
 
-        // Collect the results from threads.
-        let results = receivers.into_iter().map(|r| r.recv().unwrap()).collect();
+            // Join threads and save the last panic if there was one.
+            for h in handles {
+                if let Err(err) = h.join() {
+                    last_err = Some(err);
+                }
+            }
 
-        // If the main closure panicked, resume its panic.
-        match res {
-            Ok(r) => (results, r),
-            Err(err) => panic::resume_unwind(err),
-        }
+            // If a thread has panicked, resume the last collected panic.
+            if let Some(err) = last_err {
+                panic::resume_unwind(err);
+            }
+
+            // Collect the results from threads.
+            let results = receivers.into_iter().map(|r| r.recv().unwrap()).collect();
+
+            // If the main closure panicked, resume its panic.
+            match res {
+                Ok(r) => (results, r),
+                Err(err) => panic::resume_unwind(err),
+            }
+        })
     }
 }
 
@@ -322,16 +313,5 @@ impl<T> fmt::Debug for Parallel<'_, T> {
 impl<T> Default for Parallel<'_, T> {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-/// Aborts the process if dropped while panicking.
-struct NoPanic;
-
-impl Drop for NoPanic {
-    fn drop(&mut self) {
-        if thread::panicking() {
-            process::abort();
-        }
     }
 }
