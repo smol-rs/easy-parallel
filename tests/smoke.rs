@@ -5,7 +5,7 @@ use easy_parallel::Parallel;
 #[test]
 fn smoke() {
     let m = Mutex::new(0);
-    let v = vec![2, 3, 5, 7, 11];
+    let v = [2, 3, 5, 7, 11];
 
     Parallel::new()
         .add(|| *m.lock().unwrap() += 10)
@@ -18,7 +18,7 @@ fn smoke() {
 
 #[test]
 fn squares() {
-    let v = vec![10, 20, 30];
+    let v = [10, 20, 30];
 
     let squares = Parallel::new().each(0..v.len(), |i| v[i] * v[i]).run();
 
@@ -27,7 +27,7 @@ fn squares() {
 
 #[test]
 fn finish() {
-    let v = vec![10, 20, 30];
+    let v = [10, 20, 30];
 
     let (squares, len) = Parallel::new()
         .each(0..v.len(), |i| v[i] * v[i])
