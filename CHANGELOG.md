@@ -1,3 +1,7 @@
+# Version 3.3.1
+
+- Reimplement using 100% safe code. (#11)
+
 # Version 3.3.0
 
 - Add `Parallel::collect()` and `Parallel::finish_in()` to allow for generic containers. (#9)
