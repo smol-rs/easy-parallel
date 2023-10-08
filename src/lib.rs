@@ -66,7 +66,7 @@
 )]
 
 use std::fmt;
-use std::iter::{self, FromIterator};
+use std::iter;
 use std::panic;
 use std::sync::mpsc;
 use std::thread;
